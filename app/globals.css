@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Nexa theme variables ─────────────────────────────────────────────── */
+:root, .theme-light {
+  --bg: #f7f8f9;            /* page background */
+  --panel: #ffffff;         /* cards / sidebars / header */
+  --nx-border: #e8eaed;     /* default border */
+  --nx-border2: #e1e4e8;    /* stronger border (active tab, kbd) */
+  --text: #1a1d21;          /* primary text */
+  --nx-muted: #57606a;      /* secondary text */
+  --faint: #8b949e;         /* tertiary text / icons */
+  --fainter: #b0b8bf;       /* footers, hints */
+  --chip: #f3f4f6;          /* input / badge backgrounds */
+  --chip2: #eef0f2;         /* skeletons, track bars, guides */
+  --hover: #fafbfc;         /* button hover */
+  --hover-strong: #f0f1f3;  /* selected tree row */
+  --btn: #1a1d21;           /* primary button bg */
+  --btn-hover: #2c3137;
+  --btn-fg: #ffffff;
+}
+
+.theme-dark {
+  /* Warm near-black palette matching the landing page */
+  --bg: #0a0908;
+  --panel: #14110e;
+  --nx-border: #272019;
+  --nx-border2: #332a20;
+  --text: #f5f1ea;
+  --nx-muted: #a8a299;
+  --faint: #6f6a61;
+  --fainter: #4c463e;
+  --chip: #1d1814;
+  --chip2: #241e18;
+  --hover: #1d1814;
+  --hover-strong: #262019;
+  --btn: #ecdcbe;
+  --btn-hover: #f5e9d0;
+  --btn-fg: #1b1710;
+}
+
+@layer base {
+  :root {
+    --background:        0 0% 100%;
+    --foreground:        0 0% 7%;
+    --card:              0 0% 99%;
+    --card-foreground:   0 0% 7%;
+    --popover:           0 0% 100%;
+    --popover-foreground:0 0% 7%;
+    --primary:           0 0% 8%;
+    --primary-foreground:0 0% 100%;
+    --secondary:         0 0% 96%;
+    --secondary-foreground: 0 0% 20%;
+    --muted:             0 0% 95%;
+    --muted-foreground:  0 0% 48%;
+    --accent:            0 0% 94%;
+    --accent-foreground: 0 0% 10%;
+    --destructive:       0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border:            0 0% 89%;
+    --input:             0 0% 93%;
+    --ring:              0 0% 20%;
+    --radius:            0.5rem;
+    --sidebar:           0 0% 98%;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+  }
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 75%); }
+
+/* ── Scroll reveal (landing slides) ─────────────────────────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.slide-in { animation: slideInRight 0.25s ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in { animation: fadeIn 0.4s ease-out; }

@@ -1,0 +1,41 @@
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getFileContent } from '@/lib/github/client'
+import { analyzeNode } from '@/lib/ai/analyzer'
+
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.accessToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await req.json()
+  const { owner, repo, path, name, type, language, importedByCount } = body
+
+  if (!owner || !repo || !path || !type) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  let content: string | null = null
+  if (type === 'file') {
+    content = await getFileContent(session.accessToken, owner, repo, path)
+  }
+
+  try {
+    const result = await analyzeNode({
+      path,
+      name,
+      type,
+      content,
+      repoName: `${owner}/${repo}`,
+      language,
+      importedByCount,
+    })
+    return NextResponse.json(result)
+  } catch (err) {
+    console.error('Analysis failed:', err)
+    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 })
+  }
+}
