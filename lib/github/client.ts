@@ -9,7 +9,6 @@ export async function getUserRepos(accessToken: string): Promise<GithubRepo[]> {
   const octokit = createOctokit(accessToken)
   const { data: me } = await octokit.users.getAuthenticated()
 
-  // Fetch everything the user can access: owned, collaborations, org repos
   const all: Awaited<ReturnType<typeof octokit.repos.listForAuthenticatedUser>>['data'] = []
   for (let page = 1; page <= 5; page++) {
     const { data } = await octokit.repos.listForAuthenticatedUser({
@@ -70,7 +69,6 @@ export async function getFileContent(
     const octokit = createOctokit(accessToken)
     const { data } = await octokit.repos.getContent({ owner, repo, path })
     if (Array.isArray(data) || data.type !== 'file') return null
-    // GitHub returns base64-encoded content
     return Buffer.from(data.content, 'base64').toString('utf-8')
   } catch {
     return null

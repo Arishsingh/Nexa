@@ -67,7 +67,6 @@ export default function InfoPanel({ selected, owner, repo, onClose }: InfoPanelP
         boxShadow: `0 0 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.04)`,
       }}
     >
-      {/* Header */}
       <div className="flex items-start justify-between p-5 pb-4 border-b border-[#1e1e30]">
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -87,7 +86,6 @@ export default function InfoPanel({ selected, owner, repo, onClose }: InfoPanelP
         </button>
       </div>
 
-      {/* Badge */}
       <div className="px-5 pt-3">
         <span
           className="inline-block text-[10px] font-medium px-2 py-0.5 rounded tracking-wide"
@@ -101,7 +99,6 @@ export default function InfoPanel({ selected, owner, repo, onClose }: InfoPanelP
         </span>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {loading && (
           <div className="flex flex-col gap-3 mt-2">

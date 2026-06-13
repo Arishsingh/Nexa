@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { createClient } from '@/lib/supabase/server'
 import { createOctokit, getRepoTree, getRepoMeta } from '@/lib/github/client'
 import type { SymbolInfo } from '@/types'
 
@@ -65,17 +64,20 @@ export async function GET(
   _req: Request,
   { params }: { params: { owner: string; repo: string } }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const accessToken = session?.provider_token
+
+  if (!accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { owner, repo } = params
 
   try {
-    const octokit = createOctokit(session.accessToken)
-    const meta = await getRepoMeta(session.accessToken, owner, repo)
-    const tree = await getRepoTree(session.accessToken, owner, repo, meta.defaultBranch)
+    const octokit = createOctokit(accessToken)
+    const meta = await getRepoMeta(accessToken, owner, repo)
+    const tree = await getRepoTree(accessToken, owner, repo, meta.defaultBranch)
 
     const files = tree
       .filter(t =>
@@ -88,7 +90,6 @@ export async function GET(
     const defined = new Map<string, Set<string>>()
     const called = new Map<string, Set<string>>()
 
-    // Fetch blobs in batches to stay polite with the API
     const BATCH = 10
     for (let i = 0; i < files.length; i += BATCH) {
       const batch = files.slice(i, i + BATCH)
@@ -97,11 +98,10 @@ export async function GET(
           const { data } = await octokit.git.getBlob({ owner, repo, file_sha: f.sha })
           const content = Buffer.from(data.content, 'base64').toString('utf-8')
           extractSymbols(f.path, content, defined, called)
-        } catch { /* skip unreadable blobs */ }
+        } catch { }
       }))
     }
 
-    // Only surface names that are actually defined somewhere in the repo
     const symbols: SymbolInfo[] = Array.from(defined.entries())
       .map(([name, defs]) => ({
         name,

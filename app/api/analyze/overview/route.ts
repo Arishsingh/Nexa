@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { createClient } from '@/lib/supabase/server'
 import { analyzeRepoStructure } from '@/lib/ai/analyzer'
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -18,8 +19,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await analyzeRepoStructure({
-      repoName: repo,
-      owner,
+      repoName: repo, owner,
       description: description ?? '',
       totalFiles: totalFiles ?? 0,
       totalFolders: totalFolders ?? 0,

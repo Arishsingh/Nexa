@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { createClient } from '@/lib/supabase/server'
 import { getFileContent } from '@/lib/github/client'
 import { analyzeNode } from '@/lib/ai/analyzer'
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const accessToken = session?.provider_token
 
-  if (!session?.accessToken) {
+  if (!accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -20,18 +21,14 @@ export async function POST(req: Request) {
 
   let content: string | null = null
   if (type === 'file') {
-    content = await getFileContent(session.accessToken, owner, repo, path)
+    content = await getFileContent(accessToken, owner, repo, path)
   }
 
   try {
     const result = await analyzeNode({
-      path,
-      name,
-      type,
-      content,
+      path, name, type, content,
       repoName: `${owner}/${repo}`,
-      language,
-      importedByCount,
+      language, importedByCount,
     })
     return NextResponse.json(result)
   } catch (err) {

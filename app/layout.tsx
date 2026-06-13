@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 export const metadata: Metadata = {
   title: 'Nexa — Explore code as a 3D neural network',
   description: 'Connect GitHub. Understand any codebase in 60 seconds.',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

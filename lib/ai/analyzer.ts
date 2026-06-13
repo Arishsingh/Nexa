@@ -1,7 +1,6 @@
 import type { AnalysisResult, RepoOverview } from '@/types'
 import { geminiGenerate, parseGeminiJson, friendlyGeminiError } from '@/lib/ai/gemini'
 
-// In-memory caches — repeat clicks on the same node shouldn't spend quota
 const nodeCache = new Map<string, AnalysisResult>()
 const overviewCache = new Map<string, RepoOverview>()
 

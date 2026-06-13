@@ -1,7 +1,3 @@
-// Minimal Gemini REST client — no SDK dependency
-
-// Free-tier quotas are per-model, so falling back to a sibling model
-// genuinely helps when one is rate-limited or overloaded.
 const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
@@ -38,8 +34,6 @@ export async function geminiGenerate(params: {
       generationConfig: {
         maxOutputTokens,
         ...(json ? { responseMimeType: 'application/json' } : {}),
-        // 2.5 models spend output tokens on hidden reasoning by default —
-        // disable it so small token budgets produce actual text
         ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
     }
@@ -57,7 +51,6 @@ export async function geminiGenerate(params: {
       if (!res.ok) {
         const errBody = await res.text().catch(() => '')
         lastErr = new GeminiError(res.status, errBody.slice(0, 300))
-        // Rate limit / overload / transient — try the next model in the chain
         if ([429, 500, 503].includes(res.status)) continue
         throw lastErr
       }
@@ -84,7 +77,6 @@ export async function geminiGenerate(params: {
   throw lastErr ?? new GeminiError(0, 'All Gemini models failed')
 }
 
-// Human-readable reason for the UI when generation fails
 export function friendlyGeminiError(err: unknown): string {
   if (err instanceof GeminiError) {
     if (err.status === 429) return 'Gemini free-tier rate limit reached — wait a minute, then hit retry.'
@@ -94,7 +86,6 @@ export function friendlyGeminiError(err: unknown): string {
   return 'AI analysis failed — try again shortly.'
 }
 
-// Gemini sometimes wraps JSON in markdown fences even in JSON mode — strip them
 export function parseGeminiJson<T>(text: string): T {
   const cleaned = text
     .replace(/^\s*```(?:json)?\s*/i, '')

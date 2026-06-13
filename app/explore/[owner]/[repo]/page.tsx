@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import dynamic from 'next/dynamic'
+import { createClient } from '@/lib/supabase/client'
 import type { RepoGraph, NodeClickPayload, SymbolInfo } from '@/types'
 import FileTree, { type ExpandSignal } from '@/components/ui/FileTree'
 import AnalysisPanel from '@/components/ui/AnalysisPanel'
@@ -17,8 +17,6 @@ const CanvasGraph = dynamic(() => import('@/components/graph/CanvasGraph'), {
     </div>
   ),
 })
-
-// ── Icons ─────────────────────────────────────────────────────────────────
 
 function GithubMark({ size = 20 }: { size?: number }) {
   return (
@@ -89,8 +87,6 @@ function FileGlyphSmall() {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────
-
 const VIEW_TABS: { label: string; mode: LayoutMode }[] = [
   { label: 'Graph', mode: 'force' },
   { label: 'Tree', mode: 'tree' },
@@ -101,7 +97,9 @@ const VIEW_TABS: { label: string; mode: LayoutMode }[] = [
 export default function ExplorePage() {
   const params = useParams()
   const router = useRouter()
-  const { data: session, status: authStatus } = useSession()
+  const supabase = createClient()
+  const [userMeta, setUserMeta] = useState<{ image?: string; name?: string } | null>(null)
+  const [authReady, setAuthReady] = useState(false)
 
   const owner = params.owner as string
   const repo  = params.repo  as string
@@ -112,7 +110,6 @@ export default function ExplorePage() {
   const [selected, setSelected] = useState<NodeClickPayload | null>(null)
   const [theme, setTheme]       = useState<'light' | 'dark'>('dark')
 
-  // View / canvas controls
   const [viewMode, setViewMode]   = useState<LayoutMode>('force')
   const [autoFit, setAutoFit]     = useState(true)
   const [labelMode, setLabelMode] = useState<LabelMode>('auto')
@@ -121,13 +118,11 @@ export default function ExplorePage() {
   const [branchOpen, setBranchOpen]     = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Explorer controls
   const [treeFilterOpen, setTreeFilterOpen] = useState(false)
   const [treeFilter, setTreeFilter]         = useState('')
   const [expandSignal, setExpandSignal]     = useState<ExpandSignal>({ mode: 'expand', v: 0 })
   const [outlineOpen, setOutlineOpen]       = useState(false)
 
-  // Search + symbols
   const [searchQ, setSearchQ]           = useState('')
   const [searchOpen, setSearchOpen]     = useState(false)
   const [symbols, setSymbols]           = useState<SymbolInfo[]>([])
@@ -140,7 +135,6 @@ export default function ExplorePage() {
   const centerRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // ── Theme ───────────────────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem('nexa-theme')
     if (saved === 'dark' || saved === 'light') setTheme(saved)
@@ -152,10 +146,16 @@ export default function ExplorePage() {
     localStorage.setItem('nexa-theme', theme)
   }, [theme])
 
-  // ── Auth + data ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (authStatus === 'unauthenticated') router.push('/')
-  }, [authStatus, router])
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { router.push('/'); return }
+      setUserMeta({
+        image: session.user.user_metadata?.avatar_url,
+        name: session.user.user_metadata?.user_name,
+      })
+      setAuthReady(true)
+    })
+  }, [router])
 
   const loadGraph = useCallback(() => {
     if (!owner || !repo) return
@@ -169,11 +169,10 @@ export default function ExplorePage() {
   }, [owner, repo])
 
   useEffect(() => {
-    if (!session) return
+    if (!authReady) return
     loadGraph()
-  }, [session, loadGraph])
+  }, [authReady, loadGraph])
 
-  // Background: index function symbols for search
   useEffect(() => {
     if (!graph) return
     setSymbolsLoading(true)
@@ -184,7 +183,6 @@ export default function ExplorePage() {
       .finally(() => setSymbolsLoading(false))
   }, [graph, owner, repo])
 
-  // ── Node selection ──────────────────────────────────────────────────────
   const handleNodeClick = useCallback((p: NodeClickPayload | null) => {
     setSelected(p)
   }, [])
@@ -195,7 +193,6 @@ export default function ExplorePage() {
     return m
   }, [graph])
 
-  // ── Search ──────────────────────────────────────────────────────────────
   const searchResults = useMemo(() => {
     const q = searchQ.trim().toLowerCase()
     if (!q || !graph) return { files: [], fns: [] }
@@ -213,7 +210,6 @@ export default function ExplorePage() {
     const paths = new Set<string>()
     for (const p of files) {
       paths.add(p)
-      // Light up every ancestor folder that contains a matching file
       const parts = p.split('/')
       for (let i = 1; i < parts.length; i++) {
         paths.add(parts.slice(0, i).join('/'))
@@ -235,7 +231,6 @@ export default function ExplorePage() {
     setSearchQ('')
   }, [])
 
-  // ⌘K focuses search, Esc clears highlight / closes dropdown
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -254,7 +249,6 @@ export default function ExplorePage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // ── Fullscreen ──────────────────────────────────────────────────────────
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) centerRef.current?.requestFullscreen()
     else document.exitFullscreen()
@@ -266,7 +260,6 @@ export default function ExplorePage() {
     return () => document.removeEventListener('fullscreenchange', onFs)
   }, [])
 
-  // Auto-fit on resize when enabled
   useEffect(() => {
     if (!autoFit) return
     const onResize = () => apiRef.current?.fit()
@@ -274,13 +267,12 @@ export default function ExplorePage() {
     return () => window.removeEventListener('resize', onResize)
   }, [autoFit])
 
-  // ── Outline: functions defined in the selected file ─────────────────────
   const outlineFns = useMemo(() => {
     if (!selected || selected.nodeType !== 'file') return []
     return symbols.filter(s => s.definedIn.includes(selected.nodePath)).slice(0, 25)
   }, [selected, symbols])
 
-  if (authStatus === 'loading' || loading) {
+  if (!authReady || loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-[var(--bg)]">
         <div className="w-6 h-6 rounded-full border-2 border-[var(--text)] border-t-transparent animate-spin" />
@@ -304,11 +296,9 @@ export default function ExplorePage() {
   return (
     <div className="flex flex-col w-screen h-screen overflow-hidden bg-[var(--bg)]">
 
-      {/* ══ Top Header ══════════════════════════════════════════════════ */}
       <header className="flex items-center gap-4 px-5 shrink-0 bg-[var(--panel)] border-b border-[var(--nx-border)]"
         style={{ height: 64 }}>
 
-        {/* Logo + breadcrumb */}
         <div className="flex items-center gap-4 shrink-0">
           <button onClick={() => router.push('/dashboard')}
             className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-[var(--chip)] transition-colors"
@@ -327,7 +317,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Branch */}
         <div className="relative shrink-0">
           <button onClick={() => setBranchOpen(o => !o)}
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-[var(--chip)] transition-colors">
@@ -355,7 +344,6 @@ export default function ExplorePage() {
           )}
         </div>
 
-        {/* Search — centered */}
         <div className="flex-1 flex justify-center px-4">
           <div className="relative w-full max-w-[420px]">
             <div className="flex items-center gap-2.5 w-full px-3.5 rounded-xl bg-[var(--chip)] border border-[var(--nx-border)]"
@@ -378,7 +366,6 @@ export default function ExplorePage() {
               <kbd className="text-[11px] text-[var(--faint)] bg-[var(--panel)] border border-[var(--nx-border2)] rounded px-1.5 py-0.5">⌘ K</kbd>
             </div>
 
-            {/* Results dropdown */}
             {hasDropdown && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setSearchOpen(false)} />
@@ -439,7 +426,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Right actions */}
         <div className="flex items-center gap-3 shrink-0">
           <button onClick={() => setAnalyzeKey(k => k + 1)}
             className="flex items-center gap-2 px-4 rounded-xl bg-[var(--btn)] text-[var(--btn-fg)] text-[13px] font-semibold hover:bg-[var(--btn-hover)] transition-colors"
@@ -453,22 +439,18 @@ export default function ExplorePage() {
             {theme === 'light' ? <SunIcon /> : <MoonIcon />}
           </button>
           <div className="w-9 h-9 rounded-full bg-[var(--chip)] border border-[var(--nx-border2)] flex items-center justify-center text-[13px] font-semibold text-[var(--nx-muted)] overflow-hidden">
-            {session?.user?.image
-              ? // eslint-disable-next-line @next/next/no-img-element
-                <img src={session.user.image} alt="" className="w-full h-full object-cover" />
+            {userMeta?.image
+              ? <img src={userMeta.image} alt="" className="w-full h-full object-cover" />
               : owner[0]?.toUpperCase()}
           </div>
         </div>
       </header>
 
-      {/* ══ Body ════════════════════════════════════════════════════════ */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Left: Explorer ─────────────────────────────────────────── */}
         <aside className="flex flex-col shrink-0 overflow-hidden bg-[var(--panel)] border-r border-[var(--nx-border)]"
           style={{ width: 264 }}>
 
-          {/* Explorer header */}
           <div className="flex items-center justify-between pl-5 pr-3 pt-4 pb-2 shrink-0">
             <span className="text-[11px] font-semibold tracking-[0.08em] text-[var(--faint)]">EXPLORER</span>
             <div className="flex items-center gap-0.5">
@@ -499,7 +481,6 @@ export default function ExplorePage() {
             </div>
           </div>
 
-          {/* Filter input */}
           {treeFilterOpen && (
             <div className="px-4 pb-2 shrink-0">
               <input
@@ -512,13 +493,11 @@ export default function ExplorePage() {
             </div>
           )}
 
-          {/* Repo root */}
           <div className="flex items-center gap-2 px-5 py-1.5 shrink-0">
             <GithubMark size={15} />
             <span className="text-[13px] font-semibold text-[var(--text)]">{owner}/{repo}</span>
           </div>
 
-          {/* File tree */}
           {graph && (
             <FileTree
               graph={graph}
@@ -530,7 +509,6 @@ export default function ExplorePage() {
             />
           )}
 
-          {/* Outline */}
           <div className="shrink-0 border-t border-[var(--nx-border)] mx-4" style={{ maxHeight: outlineOpen ? 220 : undefined, display: 'flex', flexDirection: 'column' }}>
             <button onClick={() => setOutlineOpen(o => !o)}
               className="w-full flex items-center justify-between py-3.5 text-[11px] font-semibold tracking-[0.08em] text-[var(--faint)] hover:text-[var(--nx-muted)] transition-colors shrink-0">
@@ -561,13 +539,10 @@ export default function ExplorePage() {
           </div>
         </aside>
 
-        {/* ── Center: Graph ──────────────────────────────────────────── */}
         <main ref={centerRef} className="flex flex-col flex-1 overflow-hidden relative bg-[var(--bg)]">
 
-          {/* Floating toolbar */}
           <div className="absolute top-4 left-5 right-5 z-10 flex items-start justify-between pointer-events-none">
             <div className="flex items-start gap-2 pointer-events-auto">
-              {/* View tabs */}
               <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--panel)] border border-[var(--nx-border)] shadow-sm">
                 {VIEW_TABS.map(t => (
                   <button key={t.mode} onClick={() => setViewMode(t.mode)}
@@ -581,11 +556,9 @@ export default function ExplorePage() {
                 ))}
               </div>
 
-              {/* Function highlight results panel */}
               {fnHighlight && (
                 <div className="flex flex-col rounded-xl border shadow-sm overflow-hidden"
                   style={{ background: 'var(--panel)', borderColor: 'rgba(137,87,229,0.45)', width: 300 }}>
-                  {/* Header */}
                   <div className="flex items-center gap-2 px-3 py-2"
                     style={{ background: 'rgba(137,87,229,0.10)' }}>
                     <FnGlyph />
@@ -596,7 +569,6 @@ export default function ExplorePage() {
                     <button onClick={() => setFnHighlight(null)}
                       className="ml-auto text-[var(--faint)] hover:text-[var(--text)] transition-colors text-[12px]">✕</button>
                   </div>
-                  {/* File list */}
                   <div className="overflow-y-auto py-1" style={{ maxHeight: 240 }}>
                     {fnHighlight.symbol.definedIn.map(p => (
                       <button key={`d-${p}`}
@@ -625,7 +597,6 @@ export default function ExplorePage() {
               )}
             </div>
 
-            {/* Right controls */}
             <div className="flex items-center gap-2 pointer-events-auto">
               <button onClick={() => { setAutoFit(f => !f); apiRef.current?.fit() }}
                 title={autoFit ? 'Auto-fit on (click view to fit now)' : 'Auto-fit off'}
@@ -639,7 +610,6 @@ export default function ExplorePage() {
                 Fit
               </button>
 
-              {/* Settings */}
               <div className="relative">
                 <button onClick={() => setSettingsOpen(o => !o)} title="Graph settings"
                   className={`w-9 h-9 rounded-xl bg-[var(--panel)] border border-[var(--nx-border)] shadow-sm flex items-center justify-center transition-colors ${settingsOpen ? 'bg-[var(--chip)]' : 'hover:bg-[var(--hover)]'}`}>
@@ -699,7 +669,6 @@ export default function ExplorePage() {
             </div>
           </div>
 
-          {/* Canvas */}
           <div className="flex-1 relative overflow-hidden">
             {graph && (
               <CanvasGraph
@@ -719,14 +688,12 @@ export default function ExplorePage() {
               />
             )}
 
-            {/* Timeline caption */}
             {viewMode === 'timeline' && (
               <div className="absolute top-20 left-1/2 -translate-x-1/2 px-3.5 py-1.5 rounded-lg bg-[var(--panel)] border border-[var(--nx-border)] shadow-sm pointer-events-none">
                 <span className="text-[11px] text-[var(--faint)]">Grouped by folder · sorted by file size</span>
               </div>
             )}
 
-            {/* Legend */}
             <div className="absolute bottom-6 left-5 px-4 py-3.5 rounded-xl bg-[var(--panel)] border border-[var(--nx-border)] shadow-sm pointer-events-none"
               style={{ width: 165 }}>
               <p className="text-[12px] font-semibold text-[var(--text)] mb-3">Legend</p>
@@ -762,7 +729,6 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* Status / hint bar */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-xl bg-[var(--panel)] border border-[var(--nx-border)] shadow-sm pointer-events-none whitespace-nowrap">
               <span className="text-[12px] text-[var(--faint)]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16a34a] mr-1.5 align-middle" />
@@ -773,7 +739,6 @@ export default function ExplorePage() {
           </div>
         </main>
 
-        {/* ── Right: Analysis panel ──────────────────────────────────── */}
         <aside className="flex flex-col shrink-0 overflow-hidden" style={{ width: 320 }}>
           {graph && (
             <AnalysisPanel

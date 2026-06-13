@@ -13,15 +13,11 @@ export interface GraphApi {
   focus: (id: string) => void
 }
 
-// A searched function rendered as a first-class node, linked to the
-// files that define / call it
 export interface FnOverlay {
   name: string
   definedIn: string[]
   calledIn: string[]
 }
-
-// ─── Internal types ────────────────────────────────────────────────────────
 
 interface CNode {
   id: string
@@ -33,12 +29,12 @@ interface CNode {
   colRadius: number
   isRoot: boolean
   isHub: boolean
-  isFn?: boolean           // function overlay node (ƒ)
-  rel?: string[]           // ids of file nodes this ƒ node connects to
+  isFn?: boolean
+  rel?: string[]
   original: GraphNode
   x: number; y: number
   vx: number; vy: number
-  tx: number; ty: number   // target position for static layouts
+  tx: number; ty: number
 }
 
 interface CEdge {
@@ -47,8 +43,6 @@ interface CEdge {
   kind: 'structural' | 'dependency' | 'call-def' | 'call'
   strength: number
 }
-
-// ─── Data prep ─────────────────────────────────────────────────────────────
 
 function prepData(graph: RepoGraph, maxNodes = 250) {
   const sorted = [
@@ -101,7 +95,6 @@ function prepData(graph: RepoGraph, maxNodes = 250) {
     .filter(e => allowed.has(e.source) && allowed.has(e.target))
     .map(e => ({ src: e.source, tgt: e.target, kind: e.type, strength: e.strength }))
 
-  // The most-connected node becomes the dark "hub"
   const degree = new Map<string, number>()
   for (const e of edges) {
     degree.set(e.src, (degree.get(e.src) || 0) + 1)
@@ -122,15 +115,12 @@ function prepData(graph: RepoGraph, maxNodes = 250) {
   return { nodes, edges }
 }
 
-// ─── Static layouts ────────────────────────────────────────────────────────
-
 const folderFirst = (a: CNode, b: CNode) =>
   a.nodeType !== b.nodeType
     ? (a.nodeType === 'folder' ? -1 : 1)
     : a.label.localeCompare(b.label)
 
 function computeStaticLayout(mode: LayoutMode, allNodes: CNode[]) {
-  // ƒ overlay nodes follow their related files each frame — exclude from layout
   const nodes = allNodes.filter(n => !n.isFn)
   const byPath = new Map(nodes.map(n => [n.original.path, n]))
   const childrenOf = new Map<string, CNode[]>()
@@ -149,7 +139,6 @@ function computeStaticLayout(mode: LayoutMode, allNodes: CNode[]) {
   const depthOf = (n: CNode) => n.original.path.split('/').length - 1
 
   if (mode === 'tree') {
-    // Tidy top-down tree
     let cursor = 0
     const SPX = 90, SPY = 180
     const place = (n: CNode, depth: number): number => {
@@ -166,7 +155,6 @@ function computeStaticLayout(mode: LayoutMode, allNodes: CNode[]) {
     }
     roots.sort(folderFirst).forEach(r => { place(r, 0); cursor += 1.5 })
   } else if (mode === 'layers') {
-    // Concentric rings by directory depth
     const byDepth = new Map<number, CNode[]>()
     for (const n of nodes) {
       const d = depthOf(n)
@@ -187,7 +175,6 @@ function computeStaticLayout(mode: LayoutMode, allNodes: CNode[]) {
       })
     }
   } else if (mode === 'timeline') {
-    // Columns per top-level folder, files sorted by size (largest first)
     const groups = new Map<string, CNode[]>()
     for (const n of nodes) {
       const g = n.folderGroup || '(root)'
@@ -208,7 +195,6 @@ function computeStaticLayout(mode: LayoutMode, allNodes: CNode[]) {
     })
   }
 
-  // Center the layout around the origin
   if (mode !== 'force' && nodes.length) {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
     for (const n of nodes) {
@@ -219,8 +205,6 @@ function computeStaticLayout(mode: LayoutMode, allNodes: CNode[]) {
     for (const n of nodes) { n.tx -= cx; n.ty -= cy }
   }
 }
-
-// ─── Force simulation ──────────────────────────────────────────────────────
 
 function tick(nodeMap: Map<string, CNode>, edges: CEdge[], alpha: number) {
   const list = Array.from(nodeMap.values())
@@ -256,7 +240,7 @@ function tick(nodeMap: Map<string, CNode>, edges: CEdge[], alpha: number) {
       ? a.colRadius + b.colRadius + 90
       : e.kind === 'dependency'
       ? a.colRadius + b.colRadius + 60
-      : a.colRadius + b.colRadius + 30   // call edges pull files close to the ƒ node
+      : a.colRadius + b.colRadius + 30
     const delta = (d - target) * att * e.strength
     a.vx += dx / d * delta; a.vy += dy / d * delta
     b.vx -= dx / d * delta; b.vy -= dy / d * delta
@@ -273,8 +257,6 @@ function tick(nodeMap: Map<string, CNode>, edges: CEdge[], alpha: number) {
     n.x += n.vx; n.y += n.vy
   }
 }
-
-// ─── Drawing helpers ───────────────────────────────────────────────────────
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16)
@@ -318,17 +300,17 @@ const PALETTES: Record<GraphTheme, Palette> = {
     dotStrong: 'rgba(26,29,33,0.12)',
   },
   dark: {
-    bg: '#0a0908',
-    base: [26, 22, 18],
-    halo: 'rgba(10,9,8,0.9)',
-    label: '#a8a299',
-    labelStrong: '#f5f1ea',
-    hubFill: '#ecdcbe',
-    hubIcon: '#1b1710',
+    bg: '#000000',
+    base: [0, 0, 0],
+    halo: 'rgba(0,0,0,0.9)',
+    label: '#888888',
+    labelStrong: '#f0f0f0',
+    hubFill: '#ffffff',
+    hubIcon: '#000000',
     shadow: 'rgba(0,0,0,0.5)',
-    dimEdge: 'rgba(245,241,234,0.04)',
-    dot: 'rgba(245,241,234,0.05)',
-    dotStrong: 'rgba(245,241,234,0.09)',
+    dimEdge: 'rgba(255,255,255,0.04)',
+    dot: 'rgba(255,255,255,0.05)',
+    dotStrong: 'rgba(255,255,255,0.09)',
   },
 }
 
@@ -380,8 +362,6 @@ function drawFileIcon(ctx: CanvasRenderingContext2D, x: number, y: number, s: nu
   ctx.stroke()
 }
 
-// ─── Renderer ──────────────────────────────────────────────────────────────
-
 function draw(
   ctx: CanvasRenderingContext2D,
   nodes: CNode[],
@@ -408,7 +388,6 @@ function draw(
   ctx.translate(tx + w / 2, ty + h / 2)
   ctx.scale(scale, scale)
 
-  // ── Dotted background grid ────────────────────────────────────────────────
   const vx0 = (-tx - w / 2) / scale, vy0 = (-ty - h / 2) / scale
   const vx1 = vx0 + w / scale, vy1 = vy0 + h / scale
 
@@ -421,7 +400,6 @@ function draw(
   ctx.beginPath()
   for (let gx = startX; gx <= vx1 + spacing; gx += spacing) {
     for (let gy = startY; gy <= vy1 + spacing; gy += spacing) {
-      // Every 4th dot slightly stronger for a subtle large-grid rhythm
       const major = (Math.round(gx / spacing) % 4 === 0) && (Math.round(gy / spacing) % 4 === 0)
       if (major) continue
       ctx.moveTo(gx + dotR, gy)
@@ -447,7 +425,6 @@ function draw(
   const hasActive = !!activeId
   const hasHighlight = highlight.size > 0
 
-  // ── Edges ─────────────────────────────────────────────────────────────────
   for (const e of edges) {
     if (!showDeps && e.kind === 'dependency') continue
     const a = nodeMap.get(e.src), b = nodeMap.get(e.tgt)
@@ -475,7 +452,6 @@ function draw(
     ctx.quadraticCurveTo(mx, my, ex, ey)
 
     if (isCall) {
-      // defines → solid green; calls → dashed purple
       const cc = e.kind === 'call-def' ? '22,163,74' : '137,87,229'
       ctx.strokeStyle = `rgba(${cc},0.65)`
       ctx.lineWidth = 1.8 / scale
@@ -483,7 +459,6 @@ function draw(
       ctx.stroke()
       ctx.setLineDash([])
 
-      // Arrowhead at the target end, oriented along the curve
       const adx = ex - mx, ady = ey - my
       const ad = Math.sqrt(adx * adx + ady * ady) + 0.01
       const ux = adx / ad, uy = ady / ad
@@ -516,7 +491,6 @@ function draw(
     ctx.setLineDash([])
   }
 
-  // ── Nodes ─────────────────────────────────────────────────────────────────
   for (const n of nodes) {
     const isSel = n.id === selected
     const isNbr = neighbors.has(n.id)
@@ -529,7 +503,6 @@ function draw(
 
     const [r, g, b2] = hexToRgb(n.color)
 
-    // ƒ function node — purple circle with the ƒ glyph
     if (n.isFn) {
       ctx.save()
       ctx.shadowColor = 'rgba(137,87,229,0.45)'
@@ -596,7 +569,6 @@ function draw(
       ctx.stroke()
     }
 
-    // Halo ring for selected or function-highlighted nodes
     if (isSel || isHl) {
       ctx.beginPath()
       ctx.arc(n.x, n.y, n.radius + 5 / scale, 0, Math.PI * 2)
@@ -617,7 +589,6 @@ function draw(
     ctx.globalAlpha = 1
   }
 
-  // ── Labels — second pass with overlap culling ─────────────────────────────
   if (labelMode !== 'none' || selected || hovered || hasHighlight) {
     const fontSize = Math.max(9, Math.min(13, 12 / scale))
     const placed: { x0: number; y0: number; x1: number; y1: number }[] = []
@@ -693,8 +664,6 @@ function draw(
   ctx.restore()
 }
 
-// ─── Component ─────────────────────────────────────────────────────────────
-
 export default function CanvasGraph({
   graph, onNodeClick, apiRef, theme = 'light',
   mode = 'force', labelMode = 'auto', showDeps = true,
@@ -731,7 +700,6 @@ export default function CanvasGraph({
 
   const stateRef = useRef({
     tx: 0, ty: 0, scale: 1,
-    // Camera targets — the render loop eases toward these for smooth zoom/pan
     ttx: 0, tty: 0, tscale: 1,
     hovered: null as string | null,
     selected: null as string | null,
@@ -814,7 +782,6 @@ export default function CanvasGraph({
     if (apiRef) apiRef.current = { fit: () => fitGraph(false), focus: focusNode }
   }, [apiRef, fitGraph, focusNode])
 
-  // Build data when graph changes
   useEffect(() => {
     const { nodes, edges } = prepData(graph)
     const nodeMap = new Map(nodes.map(n => [n.id, n]))
@@ -834,12 +801,10 @@ export default function CanvasGraph({
     fitGraph(false, true)
   }, [graph, fitGraph])
 
-  // Inject / remove the ƒ function overlay node and its call edges
   useEffect(() => {
     const sim = simRef.current
     if (!sim) return
 
-    // Remove any previous overlay
     sim.nodes = sim.nodes.filter(n => !n.isFn)
     sim.edges = sim.edges.filter(e => !e.src.startsWith('fn:') && !e.tgt.startsWith('fn:'))
     sim.nodeMap = new Map(sim.nodes.map(n => [n.id, n]))
@@ -871,28 +836,25 @@ export default function CanvasGraph({
         }
         sim.nodes.push(fnNode)
         sim.nodeMap.set(fnId, fnNode)
-        // defining file → ƒ (solid green), ƒ → calling file (dashed purple)
         for (const n of defined) sim.edges.push({ src: n.id, tgt: fnId, kind: 'call-def', strength: 1 })
         for (const n of called) sim.edges.push({ src: fnId, tgt: n.id, kind: 'call', strength: 1 })
-        sim.alpha = Math.max(sim.alpha, 0.3) // re-heat so the ƒ node settles in
+        sim.alpha = Math.max(sim.alpha, 0.3)
       }
     }
   }, [fnOverlay, graph])
 
-  // React to layout mode changes
   useEffect(() => {
     modeRef.current = mode
     const sim = simRef.current
     if (!sim) return
     if (mode === 'force') {
-      sim.alpha = 0.5 // re-heat
+      sim.alpha = 0.5
     } else {
       computeStaticLayout(mode, sim.nodes)
       fitGraph(true)
     }
   }, [mode, fitGraph])
 
-  // Render loop
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -917,8 +879,6 @@ export default function CanvasGraph({
           sim.nodes = Array.from(sim.nodeMap.values())
         }
       } else {
-        // Animate toward static layout targets;
-        // ƒ nodes track the live centroid of their related files
         for (const n of sim.nodes) {
           if (n.isFn && n.rel?.length) {
             let cx = 0, cy = 0, c = 0
@@ -934,7 +894,6 @@ export default function CanvasGraph({
         }
       }
 
-      // Ease the camera toward its target for smooth zoom and pan
       const st = stateRef.current
       const k = 0.18
       st.scale += (st.tscale - st.scale) * k
@@ -961,7 +920,6 @@ export default function CanvasGraph({
     const cx = e.clientX - rect.left, cy = e.clientY - rect.top
     const st = stateRef.current
     if (st.dragging) {
-      // Panning follows the pointer directly — keep targets in sync
       st.tx = st.baseTx + cx - st.dragX
       st.ty = st.baseTy + cy - st.dragY
       st.ttx = st.tx
@@ -994,7 +952,6 @@ export default function CanvasGraph({
       const [wx, wy] = toWorld(e.clientX - rect.left, e.clientY - rect.top)
       const hit = hitTest(wx, wy)
       if (hit?.isFn) {
-        // ƒ nodes aren't files — clicking one just spotlights its connections
         st.selected = hit.id
         st.neighbors = getNeighbors(hit.id)
       } else if (hit) {
@@ -1019,12 +976,9 @@ export default function CanvasGraph({
     const cx = e.clientX - rect.left, cy = e.clientY - rect.top
     const c = canvasRef.current!
 
-    // Proportional zoom: small trackpad deltas zoom gently, fast wheel spins zoom faster
     const factor = Math.exp(-e.deltaY * 0.0022)
     const ns = Math.max(0.05, Math.min(5, st.tscale * factor))
 
-    // Keep the world point under the cursor fixed in the *target* camera;
-    // the render loop eases the real camera toward it for a smooth glide
     const wx = (cx - st.ttx - c.clientWidth / 2) / st.tscale
     const wy = (cy - st.tty - c.clientHeight / 2) / st.tscale
     st.ttx = cx - wx * ns - c.clientWidth / 2

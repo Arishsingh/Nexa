@@ -3,8 +3,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { NodeClickPayload, AnalysisResult, RepoOverview, RepoGraph, ChatMessage } from '@/types'
 
-// ── Shared bits ───────────────────────────────────────────────────────────
-
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`bg-[var(--panel)] rounded-2xl border border-[var(--nx-border)] p-5 ${className}`}>
@@ -29,14 +27,12 @@ function Skel({ widths = [90, 75, 60] }: { widths?: number[] }) {
 
 function FileGlyph() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#8b949e" strokeWidth="1.3" className="shrink-0">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--faint)" strokeWidth="1.3" className="shrink-0">
       <path d="M9 1.5H4a1 1 0 00-1 1v11a1 1 0 001 1h8a1 1 0 001-1V5.5L9 1.5z" />
       <path d="M9 1.5V5.5h4" />
     </svg>
   )
 }
-
-// ── Health gauge ──────────────────────────────────────────────────────────
 
 function HealthGauge({ score }: { score: number }) {
   const r = 32, circ = 2 * Math.PI * r
@@ -58,8 +54,6 @@ function HealthGauge({ score }: { score: number }) {
     </div>
   )
 }
-
-// ── Overview tab ──────────────────────────────────────────────────────────
 
 function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph; owner: string; repo: string; refreshKey?: number }) {
   const [data, setData] = useState<RepoOverview | null>(null)
@@ -93,7 +87,6 @@ function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph;
   return (
     <div className="flex flex-col gap-4">
 
-      {/* Architecture Summary */}
       <Card>
         <CardTitle>Architecture Summary</CardTitle>
         {loading ? <Skel widths={[92, 80, 88, 76, 70]} /> : (
@@ -107,7 +100,6 @@ function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph;
         )}
       </Card>
 
-      {/* Top Dependencies */}
       <Card>
         <CardTitle>Top Dependencies</CardTitle>
         {topDeps.length === 0
@@ -130,7 +122,6 @@ function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph;
         }
       </Card>
 
-      {/* Repository Health */}
       <Card>
         <CardTitle>Repository Health</CardTitle>
         {loading ? (
@@ -159,7 +150,6 @@ function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph;
         ) : <p className="text-[12px] text-[var(--faint)]">No health data.</p>}
       </Card>
 
-      {/* Risks */}
       <Card>
         <CardTitle>Risks</CardTitle>
         {loading ? <Skel widths={[88, 78, 72]} /> :
@@ -182,7 +172,6 @@ function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph;
         }
       </Card>
 
-      {/* Recommendations */}
       {!loading && (data?.recommendations?.length ?? 0) > 0 && (
         <Card>
           <CardTitle>Recommendations</CardTitle>
@@ -199,8 +188,6 @@ function OverviewTab({ graph, owner, repo, refreshKey = 0 }: { graph: RepoGraph;
     </div>
   )
 }
-
-// ── Node detail ───────────────────────────────────────────────────────────
 
 function NodeDetail({ selected, owner, repo, onClose }: {
   selected: NodeClickPayload; owner: string; repo: string; onClose: () => void
@@ -223,7 +210,6 @@ function NodeDetail({ selected, owner, repo, onClose }: {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Node header card */}
       <Card>
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-[var(--chip)] border border-[var(--nx-border)] flex items-center justify-center shrink-0">
@@ -277,8 +263,6 @@ function NodeDetail({ selected, owner, repo, onClose }: {
   )
 }
 
-// ── AI Chat ───────────────────────────────────────────────────────────────
-
 function AIChatTab({ owner, repo, graph }: { owner: string; repo: string; graph: RepoGraph }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -316,7 +300,6 @@ function AIChatTab({ owner, repo, graph }: { owner: string; repo: string; graph:
 
   return (
     <div className="flex flex-col h-full bg-[var(--panel)] rounded-2xl border border-[var(--nx-border)] overflow-hidden">
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
@@ -353,7 +336,6 @@ function AIChatTab({ owner, repo, graph }: { owner: string; repo: string; graph:
         )}
       </div>
 
-      {/* Input */}
       <div className="shrink-0 border-t border-[var(--nx-border)] p-3 flex items-center gap-2">
         <input
           value={input}
@@ -372,8 +354,6 @@ function AIChatTab({ owner, repo, graph }: { owner: string; repo: string; graph:
     </div>
   )
 }
-
-// ── Main export ───────────────────────────────────────────────────────────
 
 export default function AnalysisPanel({ selected, owner, repo, graph, onClose, analyzeKey = 0 }: {
   selected: NodeClickPayload | null
@@ -394,7 +374,6 @@ export default function AnalysisPanel({ selected, owner, repo, graph, onClose, a
   return (
     <div className="flex flex-col h-full pr-5 pl-1 py-4 gap-4">
 
-      {/* Segmented tabs */}
       <div className="shrink-0 flex items-center gap-1 p-1 rounded-xl bg-[var(--panel)] border border-[var(--nx-border)] self-start">
         {([['overview', 'Overview'], ['chat', 'AI Chat']] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
@@ -408,7 +387,6 @@ export default function AnalysisPanel({ selected, owner, repo, graph, onClose, a
         ))}
       </div>
 
-      {/* Scrollable card stack */}
       <div className="flex-1 overflow-y-auto -mr-2 pr-2">
         {tab === 'overview'
           ? selected
@@ -418,7 +396,6 @@ export default function AnalysisPanel({ selected, owner, repo, graph, onClose, a
         }
       </div>
 
-      {/* Footer */}
       <div className="shrink-0 flex items-center justify-end gap-2">
         <span className="text-[11px] text-[var(--fainter)]">
           Last analyzed: {analyzedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

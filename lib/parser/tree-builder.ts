@@ -51,7 +51,6 @@ export function buildGraph(
   const edges: GraphEdge[] = []
   const nodeIds = new Set<string>()
 
-  // Create a node for each item
   for (const item of filtered) {
     const parts = item.path.split('/')
     const name = parts[parts.length - 1]
@@ -72,7 +71,6 @@ export function buildGraph(
     nodeIds.add(item.path)
   }
 
-  // Structural edges: file/folder → its parent folder
   for (const node of nodes) {
     if (node.depth === 0) continue
     const parentPath = node.path.split('/').slice(0, -1).join('/')

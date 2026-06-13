@@ -7,13 +7,11 @@ const IMPORT_PATTERNS = [
 ]
 
 function resolveImportPath(importPath: string, fromFile: string): string | null {
-  // Only process relative imports (internal deps)
   if (!importPath.startsWith('.') && !importPath.startsWith('/')) return null
 
   const dir = path.dirname(fromFile)
   let resolved = path.join(dir, importPath).replace(/\\/g, '/')
 
-  // Remove leading ./
   if (resolved.startsWith('./')) resolved = resolved.slice(2)
   if (resolved.startsWith('/')) resolved = resolved.slice(1)
 
@@ -21,17 +19,14 @@ function resolveImportPath(importPath: string, fromFile: string): string | null 
 }
 
 function findMatchingNode(resolved: string, knownPaths: Set<string>): string | null {
-  // Exact match
   if (knownPaths.has(resolved)) return resolved
 
-  // Try common extensions
   const exts = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs']
   for (const ext of exts) {
     const withExt = `${resolved}.${ext}`
     if (knownPaths.has(withExt)) return withExt
   }
 
-  // Try index files
   for (const ext of exts) {
     const index = `${resolved}/index.${ext}`
     if (knownPaths.has(index)) return index

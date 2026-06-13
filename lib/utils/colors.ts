@@ -1,32 +1,31 @@
-// Bold, distinct data-viz palette — works on white backgrounds
 const FOLDER_PALETTE = [
-  '#2563eb', // blue
-  '#16a34a', // green
-  '#dc2626', // red
-  '#d97706', // amber
-  '#0891b2', // cyan
-  '#9333ea', // grape
-  '#db2777', // pink
-  '#65a30d', // lime
-  '#0f766e', // teal
-  '#c2410c', // burnt orange
+  '#3178c6',
+  '#4f9e5a',
+  '#6b7280',
+  '#00add8',
+  '#9333ea',
+  '#db2777',
+  '#0f766e',
+  '#6b6b6b',
+  '#4b5563',
+  '#374151',
 ]
 
 const LANG_COLORS: Record<string, string> = {
-  TypeScript: '#2563eb',
-  JavaScript: '#d97706',
-  Python:     '#16a34a',
-  Go:         '#0891b2',
-  Rust:       '#c2410c',
+  TypeScript: '#3178c6',
+  JavaScript: '#e8b33d',
+  Python:     '#4f9e5a',
+  Go:         '#00add8',
+  Rust:       '#dea584',
   CSS:        '#9333ea',
-  HTML:       '#dc2626',
-  JSON:       '#65a30d',
-  Markdown:   '#6b7280',
+  HTML:       '#e34c26',
+  JSON:       '#b07219',
+  Markdown:   '#a8a299',
   YAML:       '#db2777',
-  Ruby:       '#dc2626',
-  Java:       '#d97706',
-  'C#':       '#16a34a',
-  Swift:      '#c2410c',
+  Ruby:       '#e34c26',
+  Java:       '#b07219',
+  'C#':       '#4f9e5a',
+  Swift:      '#e34c26',
   Kotlin:     '#9333ea',
 }
 

@@ -35,7 +35,6 @@ function buildTree(nodes: GraphNode[]): TreeNode[] {
   return roots
 }
 
-// Keep only nodes matching the filter (or with matching descendants)
 function pruneTree(list: TreeNode[], q: string): TreeNode[] {
   const out: TreeNode[] = []
   for (const n of list) {
@@ -47,11 +46,10 @@ function pruneTree(list: TreeNode[], q: string): TreeNode[] {
   return out
 }
 
-// File extension → colored icon
 function FileIconDot({ name, type }: { name: string; type: 'file' | 'folder' }) {
   if (type === 'folder') {
     return (
-      <svg width="15" height="15" viewBox="0 0 16 16" className="shrink-0" fill="#f0a742">
+      <svg width="15" height="15" viewBox="0 0 16 16" className="shrink-0" fill="#6b6b6b">
         <path d="M1.5 4a1 1 0 011-1H6l1.5 1.5h6a1 1 0 011 1V12a1 1 0 01-1 1h-11a1 1 0 01-1-1V4z" />
       </svg>
     )
@@ -95,7 +93,6 @@ function TreeRow({ node, selectedId, onSelect, depth = 0, expandSignal, forceOpe
     if (expandSignal && expandSignal.v > 0) setOpen(expandSignal.mode === 'expand')
   }, [expandSignal])
 
-  // Auto-expand folders that contain function-search matches
   useEffect(() => {
     if (isFolder && isHighlighted) setOpen(true)
   }, [isFolder, isHighlighted])
@@ -122,7 +119,6 @@ function TreeRow({ node, selectedId, onSelect, depth = 0, expandSignal, forceOpe
         onMouseEnter={e => { if (!isSelected && !isHighlighted) (e.currentTarget as HTMLElement).style.background = 'var(--bg)' }}
         onMouseLeave={e => { if (!isSelected && !isHighlighted) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
-        {/* Indentation guide lines */}
         {Array.from({ length: depth }).map((_, i) => (
           <span key={i} style={{
             position: 'absolute', left: `${20 + i * 16 + 7}px`,
@@ -131,7 +127,6 @@ function TreeRow({ node, selectedId, onSelect, depth = 0, expandSignal, forceOpe
           }} />
         ))}
 
-        {/* Chevron for folders */}
         {isFolder ? (
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#8b949e" strokeWidth="1.5"
             className="shrink-0 transition-transform"
@@ -152,12 +147,10 @@ function TreeRow({ node, selectedId, onSelect, depth = 0, expandSignal, forceOpe
           {node.name}
         </span>
 
-        {/* ƒ badge for function-highlighted files */}
         {isHighlighted && (
           <span className="ml-auto shrink-0 text-[10px] font-bold italic" style={{ color: '#8957e5' }}>ƒ</span>
         )}
 
-        {/* Modified dot for root folders */}
         {isFolder && depth === 0 && !isHighlighted && (
           <span className="w-1 h-1 rounded-full ml-0.5 shrink-0" style={{ background: 'var(--fainter)' }} />
         )}

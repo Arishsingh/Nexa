@@ -48,14 +48,13 @@ export interface RepoGraph {
   defaultBranch: string
 }
 
-// Flat graph representation for force layout
 export interface GraphNode {
   id: string
   path: string
   name: string
   type: 'file' | 'folder'
   size: number
-  folderGroup: string  // top-level folder for color grouping
+  folderGroup: string
   depth: number
   language?: string
 }
@@ -68,7 +67,6 @@ export interface GraphEdge {
   strength: number
 }
 
-// Force simulation internal types
 export interface SimNode extends GraphNode {
   x: number
   y: number
@@ -116,8 +114,8 @@ export interface NodeClickPayload {
 
 export interface SymbolInfo {
   name: string
-  definedIn: string[]   // file paths where this function is defined
-  calledIn: string[]    // file paths where this function is called
+  definedIn: string[]
+  calledIn: string[]
 }
 
 export interface ChatMessage {
@@ -125,14 +123,3 @@ export interface ChatMessage {
   content: string
 }
 
-declare module 'next-auth' {
-  interface Session {
-    accessToken?: string
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT {
-    accessToken?: string
-  }
-}
