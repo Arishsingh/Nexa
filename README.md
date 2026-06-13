@@ -1,4 +1,4 @@
-                                                                # Nexa
+                                              # Nexa
 **AI codebase intelligence inside your browser**
 
 A full-stack platform that connects to any GitHub repository — builds an interactive dependency graph, explains files and folders with AI, and lets you ask anything about the codebase. Without leaving your tab.
