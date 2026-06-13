@@ -1,15 +1,17 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import loadDynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import type { RepoGraph, NodeClickPayload, SymbolInfo } from '@/types'
 import FileTree, { type ExpandSignal } from '@/components/ui/FileTree'
 import AnalysisPanel from '@/components/ui/AnalysisPanel'
 import type { GraphApi, LayoutMode, LabelMode } from '@/components/graph/CanvasGraph'
 
-const CanvasGraph = dynamic(() => import('@/components/graph/CanvasGraph'), {
+const CanvasGraph = loadDynamic(() => import('@/components/graph/CanvasGraph'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center w-full h-full bg-[var(--bg)]">
