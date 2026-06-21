@@ -1,5 +1,31 @@
-const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+const MODEL_CHAIN = ['gemini-3.5-flash']
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+
+// Client-side rate limits for gemini-3-flash-preview (free tier)
+const RPM = 5 // requests per minute
+const RPD = 20 // requests per day
+const MINUTE = 60 * 1000
+const DAY = 24 * 60 * 60 * 1000
+
+const requestLog: number[] = []
+
+function checkRateLimit() {
+  const now = Date.now()
+  // Drop timestamps older than a day
+  while (requestLog.length && now - requestLog[0] > DAY) requestLog.shift()
+
+  const inLastDay = requestLog.length
+  const inLastMinute = requestLog.filter(t => now - t < MINUTE).length
+
+  if (inLastDay >= RPD) {
+    throw new GeminiError(429, `Daily limit reached (${RPD} requests/day). Try again tomorrow.`)
+  }
+  if (inLastMinute >= RPM) {
+    throw new GeminiError(429, `Rate limit reached (${RPM} requests/min). Wait a minute, then retry.`)
+  }
+
+  requestLog.push(now)
+}
 
 export interface GeminiMessage {
   role: 'user' | 'model'
@@ -25,6 +51,8 @@ export async function geminiGenerate(params: {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new GeminiError(0, 'GEMINI_API_KEY is not set')
 
+  checkRateLimit()
+
   let lastErr: GeminiError | null = null
 
   for (const model of MODEL_CHAIN) {
@@ -34,7 +62,7 @@ export async function geminiGenerate(params: {
       generationConfig: {
         maxOutputTokens,
         ...(json ? { responseMimeType: 'application/json' } : {}),
-        ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        ...(/^gemini-(2\.5|3)/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
     }
 
@@ -79,6 +107,7 @@ export async function geminiGenerate(params: {
 
 export function friendlyGeminiError(err: unknown): string {
   if (err instanceof GeminiError) {
+    if (err.status === 429 && /limit reached/.test(err.message)) return err.message
     if (err.status === 429) return 'Gemini free-tier rate limit reached — wait a minute, then hit retry.'
     if (err.status === 503) return 'Gemini is overloaded right now — try again shortly.'
     if (err.status === 0 && err.message.includes('GEMINI_API_KEY')) return 'GEMINI_API_KEY is missing — restart the dev server after setting it.'

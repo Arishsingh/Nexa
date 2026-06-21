@@ -44,9 +44,17 @@ export default function SignInPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.push("/dashboard");
+      if (session) router.replace("/dashboard");
       else setChecking(false);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session) router.replace("/dashboard");
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   async function signInWithGithub() {
