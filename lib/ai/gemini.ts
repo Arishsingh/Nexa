@@ -1,9 +1,8 @@
 const MODEL_CHAIN = ['gemini-3.5-flash']
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-// Client-side rate limits for gemini-3-flash-preview (free tier)
-const RPM = 5 // requests per minute
-const RPD = 20 // requests per day
+const RPM = 5
+const RPD = 20
 const MINUTE = 60 * 1000
 const DAY = 24 * 60 * 60 * 1000
 
@@ -11,7 +10,6 @@ const requestLog: number[] = []
 
 function checkRateLimit() {
   const now = Date.now()
-  // Drop timestamps older than a day
   while (requestLog.length && now - requestLog[0] > DAY) requestLog.shift()
 
   const inLastDay = requestLog.length
