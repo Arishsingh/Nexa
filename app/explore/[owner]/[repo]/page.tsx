@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import loadDynamic from 'next/dynamic'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from 'next-auth/react'
 import type { RepoGraph, NodeClickPayload, SymbolInfo } from '@/types'
 import FileTree, { type ExpandSignal } from '@/components/ui/FileTree'
 import AnalysisPanel from '@/components/ui/AnalysisPanel'
@@ -99,7 +99,7 @@ const VIEW_TABS: { label: string; mode: LayoutMode }[] = [
 export default function ExplorePage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const { data: session, status } = useSession()
   const [userMeta, setUserMeta] = useState<{ image?: string; name?: string } | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
@@ -149,15 +149,15 @@ export default function ExplorePage() {
   }, [theme])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { router.push('/'); return }
+    if (status === 'unauthenticated') { router.push('/'); return }
+    if (status === 'authenticated') {
       setUserMeta({
-        image: session.user.user_metadata?.avatar_url,
-        name: session.user.user_metadata?.user_name,
+        image: session?.user?.image ?? undefined,
+        name: session?.username ?? session?.user?.name ?? undefined,
       })
       setAuthReady(true)
-    })
-  }, [router])
+    }
+  }, [status, session, router])
 
   const loadGraph = useCallback(() => {
     if (!owner || !repo) return

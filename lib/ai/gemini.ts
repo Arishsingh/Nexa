@@ -1,8 +1,8 @@
-const MODEL_CHAIN = ['gemini-3.5-flash']
+const MODEL_CHAIN = ['gemma-4-26b-a4b-it']
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-const RPM = 5
-const RPD = 20
+const RPM = 15
+const RPD = 1500
 const MINUTE = 60 * 1000
 const DAY = 24 * 60 * 60 * 1000
 
@@ -54,12 +54,28 @@ export async function geminiGenerate(params: {
   let lastErr: GeminiError | null = null
 
   for (const model of MODEL_CHAIN) {
+    // Gemma models reject systemInstruction and responseMimeType, so the
+    // system prompt is merged into the first user turn instead.
+    const isGemma = model.startsWith('gemma')
+    const sys = isGemma && json
+      ? `${system}\n\nRespond with valid JSON only — no markdown fences.`
+      : system
+
+    const contents = messages.map(m => ({ role: m.role, parts: [{ text: m.text }] }))
+    if (isGemma) {
+      if (contents.length && contents[0].role === 'user') {
+        contents[0] = { role: 'user', parts: [{ text: `${sys}\n\n${contents[0].parts[0].text}` }] }
+      } else {
+        contents.unshift({ role: 'user', parts: [{ text: sys }] })
+      }
+    }
+
     const body: Record<string, unknown> = {
-      systemInstruction: { parts: [{ text: system }] },
-      contents: messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+      ...(isGemma ? {} : { systemInstruction: { parts: [{ text: system }] } }),
+      contents,
       generationConfig: {
         maxOutputTokens,
-        ...(json ? { responseMimeType: 'application/json' } : {}),
+        ...(json && !isGemma ? { responseMimeType: 'application/json' } : {}),
         ...(/^gemini-(2\.5|3)/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
     }

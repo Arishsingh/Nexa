@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { geminiGenerate, friendlyGeminiError } from '@/lib/ai/gemini'
 import type { ChatMessage } from '@/types'
 
@@ -8,8 +9,7 @@ You answer questions about the repository the user is exploring: architecture, f
 Be concise and technical. Use short paragraphs or bullet lists. Plain text only — no markdown headers.`
 
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await getServerSession(authOptions)
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

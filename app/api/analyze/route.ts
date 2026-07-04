@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { getFileContent } from '@/lib/github/client'
 import { analyzeNode } from '@/lib/ai/analyzer'
 
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const accessToken = session?.provider_token
+  const session = await getServerSession(authOptions)
+  const accessToken = session?.accessToken
 
   if (!accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

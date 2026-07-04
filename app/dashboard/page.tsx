@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { GithubRepo } from '@/types'
-import { createClient } from '@/lib/supabase/client'
+import { useSession, signOut } from 'next-auth/react'
 
 const C = {
   bg: '#000000',
@@ -119,7 +119,7 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 
 export default function Dashboard() {
   const router = useRouter()
-  const supabase = createClient()
+  const { data: session, status } = useSession()
   const [user, setUser]       = useState<{ image?: string | null } | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [repos, setRepos]     = useState<GithubRepo[]>([])
@@ -128,12 +128,12 @@ export default function Dashboard() {
   const [search, setSearch]   = useState('')
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { router.push('/'); return }
-      setUser({ image: session.user.user_metadata?.avatar_url })
+    if (status === 'unauthenticated') { router.push('/'); return }
+    if (status === 'authenticated') {
+      setUser({ image: session?.user?.image })
       setAuthReady(true)
-    })
-  }, [router])
+    }
+  }, [status, session, router])
 
   useEffect(() => {
     if (!authReady) return
@@ -158,8 +158,7 @@ export default function Dashboard() {
   const collabRepos = filtered.filter(r => r.affiliation !== 'owner')
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/')
+    await signOut({ callbackUrl: '/' })
   }
 
   if (!authReady || loading) {

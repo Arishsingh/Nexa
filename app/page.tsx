@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useSession } from "next-auth/react";
 
 const C = {
   bg: "#0a0a09",
@@ -471,16 +471,15 @@ const STATS = [
 
 export default function LandingPage() {
   const router = useRouter();
+  const { status: authStatus } = useSession();
   const [status, setStatus] = useState<"loading" | "done">("loading");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.push("/dashboard");
-      else setStatus("done");
-    });
-  }, [router]);
+    if (authStatus === "loading") return;
+    if (authStatus === "authenticated") router.push("/dashboard");
+    else setStatus("done");
+  }, [authStatus, router]);
 
   useEffect(() => {
     if (status === "loading") return;

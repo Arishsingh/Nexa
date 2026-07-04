@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { signIn, useSession } from "next-auth/react";
 
 function NexaMark({
   size = 28,
@@ -38,37 +38,19 @@ function GithubIcon() {
 
 export default function SignInPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { status } = useSession();
   const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace("/dashboard");
-      else setChecking(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session) router.replace("/dashboard");
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (status === "authenticated") router.replace("/dashboard");
+  }, [status, router]);
 
   async function signInWithGithub() {
     setLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        scopes: "read:user repo",
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    await signIn("github", { callbackUrl: "/dashboard" });
   }
 
-  if (checking) {
+  if (status === "loading" || status === "authenticated") {
     return <div className="min-h-screen" style={{ background: "#000" }} />;
   }
 

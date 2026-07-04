@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { getRepoTree, getRepoMeta } from '@/lib/github/client'
 import { buildGraph } from '@/lib/parser/tree-builder'
 
@@ -7,9 +8,8 @@ export async function GET(
   _req: Request,
   { params }: { params: { owner: string; repo: string } }
 ) {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const accessToken = session?.provider_token
+  const session = await getServerSession(authOptions)
+  const accessToken = session?.accessToken
 
   if (!accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
