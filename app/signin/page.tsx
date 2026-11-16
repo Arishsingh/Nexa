@@ -75,6 +75,25 @@ export default function SignInPage() {
 
         <div className="flex flex-col items-center justify-center flex-1 w-full max-w-sm mx-auto">
           <div className="w-full">
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 text-[13px] mb-8 transition-colors hover:text-[#f2f1ee]"
+              style={{ color: "#6e6d68" }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </a>
             <h1
               className="text-[26px] font-semibold tracking-[-0.02em] mb-1.5"
               style={{ color: "#f2f1ee" }}
